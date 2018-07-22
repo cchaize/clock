@@ -7,6 +7,8 @@
     printed to Serial when the module is connected.
 */
 
+//#define DEBUG
+
 #include <ESP8266WiFi.h>
 #include <time.h>
 
@@ -18,6 +20,10 @@ char prev_hour[9]="";
 
 int timezone = 2*3600;
 int dst = 1;
+
+enum menu {TIME, SET_ALARM_H, SET_ALARM_M};
+
+enum menu posMenu;
 
 #include "TM1637.h"
 #define ON 1
@@ -34,37 +40,38 @@ TM1637 tm1637(CLK,DIO);
 WiFiServer server(80);
 
 void setup() {
-  Serial.begin(115200);
+
+  startLog();
   delay(10);
+
+  posMenu = TIME;
 
   // prepare GPIO2
   pinMode(2, OUTPUT);
   digitalWrite(2, 0);
 
   // Connect to WiFi network
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  mainLog(formatMsg("Connecting to %s",ssid));
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    mainLog_(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
+
+  mainLog("WiFi connected");
 
   getTime(heure);
 
   // Start the server
   server.begin();
-  Serial.println("Server started");
+  mainLog("Server started");
 
   // Print the IP address
-  Serial.println(WiFi.localIP());
+//  mainLog(formatMsg("IP adress=%s",WiFi.localIP()));
+  mainLog(WiFi.localIP().toString());
 
   tm1637.set(0);
   tm1637.init();
@@ -75,44 +82,10 @@ void setup() {
 
 void loop() {
 
-  time_t now = time(nullptr);
-  struct tm* p_tm = localtime(&now);
-  sprintf(heure,"%02d:%02d:%02d",p_tm->tm_hour,p_tm->tm_min,p_tm->tm_sec);
-
-/*  Serial.print(heure);
-  Serial.print(" / ");
-  Serial.print(prev_hour);
-  Serial.print(" -> ");
-  Serial.println(strcmp(heure, prev_hour));
-*/
-  if (strcmp(heure, prev_hour)==0)
-    return;
-  strcpy(prev_hour, heure);
-
-  TimeUpdate(p_tm);
-  tm1637.display(TimeDisp);
-  //TimingISR();
-  ClockPoint = (~ClockPoint) & 0x01;
-
-}
-
-void getTime(char *h){
-  configTime(timezone, dst, "pool.ntp.org","time.nist.gov");
-  while(!time(nullptr)){
-    Serial.print("*");
-    delay(1000);
+  switch (posMenu){
+    case TIME : oclock();
+                break;
   }
 }
 
-void TimeUpdate(tm* p_tm)
-{
-  if(ClockPoint)tm1637.point(POINT_ON);
-  else tm1637.point(POINT_OFF);
-  TimeDisp[0] = p_tm->tm_hour / 10;
-  if (TimeDisp[0]==0)
-    TimeDisp[0] = 16;
-  TimeDisp[1] = p_tm->tm_hour % 10;
-  TimeDisp[2] = p_tm->tm_min / 10;
-  TimeDisp[3] = p_tm->tm_min % 10;
-}
 
