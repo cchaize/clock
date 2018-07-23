@@ -9,16 +9,16 @@ void getTime(char *h){
 void oclock(void) {
   time_t now = time(nullptr);
   struct tm* p_tm = localtime(&now);
-  sprintf(heure,"%02d:%02d:%02d",p_tm->tm_hour,p_tm->tm_min,p_tm->tm_sec);
+  sprintf(hour,"%02d:%02d:%02d",p_tm->tm_hour,p_tm->tm_min,p_tm->tm_sec);
 
 
-  debugLog(formatMsg("%s / %s --> %d",heure,prev_hour,strcmp(heure, prev_hour)));
+  debugLog(formatMsg("%s / %s --> %d",hour,prev_hour,strcmp(hour, prev_hour)));
 
-  if (strcmp(heure, prev_hour)==0)
+  if (strcmp(hour, prev_hour)==0)
     return;
-  strcpy(prev_hour, heure);
+  strcpy(prev_hour, hour);
 
-  debugLog(heure);
+  debugLog(hour);
 
   displayClock(p_tm);
   tm1637.display(TimeDisp);
